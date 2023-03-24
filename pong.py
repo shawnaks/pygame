@@ -1,6 +1,6 @@
 import pygame
 
-difficulty = input ('Select difficulty \nEasy, Medium, Hard, Very Hard')
+difficulty = input ('Select difficulty \neasy, medium, hard, very hard, bot')
 if difficulty == 'Easy':
     vel = 2
 elif difficulty == 'Medium':
@@ -9,43 +9,54 @@ elif difficulty == 'Hard':
     vel = 9
 elif difficulty == 'Very Hard':
     vel = 13
+elif difficulty == 'bot':
+    botstat = True
+    vel = 9
 
 pygame.init()
 
-icon = pygame.image.load('ping-pong.png')
+
 scrheight = 500
 scrwidth = 700
 screen = pygame.display.set_mode((scrwidth,scrheight))
 pygame.display.set_caption('Pong')
-pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 WHITE = (255,255,255)
 LIME = (81, 255, 46)
 BLACK = (0,0,0)
 RED = (181, 18, 18)
 GREEN = (25, 87, 18)
+CYAN = (5,232,202)
 SCORE_FONT = pygame.font.SysFont('comicsans', 58)
 win_font = pygame.font.SysFont('ubuntu', 40)
+bally = scrwidth//2
 
-paddle1 = pygame.image.load('001-ping-pong.png')
 
 class paddle(object):
     COLOR = RED
     VELOCITY = (4/5) * (vel)
-    def __init__ (self, x, y, height, width):
+    def __init__ (self, x, y, height, width, bot):
         self.x = self.originalx = x
         self.y = self.originaly = y
         self.width = width
         self.height = height
-
+        self.bot = bot
+        self.bottom = self.y + self.height -10 
     def draw (self, screen):
         pygame.draw.rect(screen, self.COLOR, (self.x, self.y, self.width, self.height))
 
     def move (self, up=True):
-        if up == True:
-            self.y -= self.VELOCITY
+        if self.bot == True:
+            self.y = bally - 10
+            self.bottom = self.y + self.height -10 
+            if self.bottom >= scrheight-self.height//2:
+                self.y = scrheight-self.height
+                self.bottom = scrheight
         else:
-            self.y += self.VELOCITY
+            if up == True:
+                self.y -= self.VELOCITY
+            else:
+                self.y += self.VELOCITY
     def reset(self):
         self.x = self.originalx
         self.y = self.originaly
@@ -64,8 +75,10 @@ class ball ():
         pygame.draw.circle(screen, self.COLOR, (self.x, self.y), self.radius)
     
     def move(self):
+        global bally
         self.x += self.xvel
         self.y += self.yvel
+        bally= self.y
 
     def reset(self):
         self.x = self.originalx
@@ -92,14 +105,18 @@ def draw (paddles, ball, left_score, right_score):
     ball.draw(screen)
 
 def handle_paddle_movement(keys, left, right):
+    if botstat == True:
+        right.move(up=True)
+    else:
+        if keys[pygame.K_UP] and right.y - right.VELOCITY >= 0:
+            right.move(up=True)
+        if keys[pygame.K_DOWN] and right.y + right.height + right.VELOCITY <= scrheight:
+            right.move(up=False)    
     if keys[pygame.K_w] and left.y - left.VELOCITY >= 0:
         left.move(up=True)
     if keys[pygame.K_s] and left.y + left.height + left.VELOCITY <= scrheight:
         left.move(up=False)
-    if keys[pygame.K_UP] and right.y - right.VELOCITY >= 0:
-        right.move(up=True)
-    if keys[pygame.K_DOWN] and right.y + right.height + right.VELOCITY <= scrheight:
-        right.move(up=False)
+
 
 def handle_collision(ball, left_paddle, right_paddle):
     if ball.y+ball.radius>=scrheight:
@@ -131,8 +148,8 @@ def handle_collision(ball, left_paddle, right_paddle):
     
 paddleheight, paddlewidth = 100, 20
 
-left_paddle = paddle (10, scrheight//2 - paddleheight//2, paddleheight, paddlewidth)
-right_paddle = paddle (scrwidth - 10 - paddlewidth, scrheight//2 - paddleheight//2, paddleheight, paddlewidth)
+left_paddle = paddle (10, scrheight//2 - paddleheight//2, paddleheight, paddlewidth, bot=False)
+right_paddle = paddle (scrwidth - 10 - paddlewidth, scrheight//2 - paddleheight//2, paddleheight, paddlewidth, bot=botstat)
 ball = ball(scrwidth//2 - 7 , scrheight//2 - 7 , 7)
 
 
@@ -169,9 +186,12 @@ while running:
     if left_score >= winning_score:
         won = True
         winning_text = 'Left player won!'
-    elif right_score >= winning_score:
+    elif right_score >= winning_score and not botstat:
         won = True
         winning_text = 'Right player won!'
+    elif right_score >= winning_score and botstat:
+        won = True
+        winning_text = 'The Bot Won!'
     if won:
         left_paddle.reset()
         right_paddle.reset()
@@ -181,7 +201,7 @@ while running:
         running = False
     pygame.display.update()
 
-screen.fill(BLACK)
+screen.fill(CYAN)
 win_text = win_font.render(winning_text, 1, WHITE)
 screen.blit(win_text, (scrwidth//2 - win_text.get_width()//2, scrheight//2 - win_text.get_height()//2))
 pygame.display.update()
